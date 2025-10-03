@@ -1,49 +1,76 @@
-# Python
+# ===================================
+# Python Backend
+# ===================================
+
+# Python bytecode
 __pycache__/
 *.py[cod]
 *$py.class
-*.so
 
 # Virtual Environments
-.venv
 venv/
 env/
 ENV/
 
 # Flask
-instance/
-.webassets-cache
 .env
-
-# Distribution / packaging
-build/
-dist/
-*.egg-info/
-*.egg
-
-# Testing
-.pytest_cache/
-.coverage
-htmlcov/
-*.cover
-
-# IDEs
-.vscode/
-.idea/
-*.swp
-*.swo
-*~
-
-# macOS
-.DS_Store
-.AppleDouble
-.LSOverride
-._*
-*.icloud
 
 # Logs
 *.log
 
-# Database (Django default, not our blog.db)
-db.sqlite3
-db.sqlite3-journal
+# ===================================
+# macOS
+# ===================================
+
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+
+# ===================================
+# iOS / Swift / Xcode
+# ===================================
+
+# User settings
+xcuserdata/
+
+# Build artifacts
+build/
+DerivedData/
+*.ipa
+*.dSYM.zip
+*.dSYM
+
+# Xcode compatibility
+*.xcscmblueprint
+*.xccheckout
+*.moved-aside
+*.hmap
+
+# Playgrounds
+timeline.xctimeline
+playground.xcworkspace
+
+# Swift Package Manager
+.build/
+.swiftpm/
+
+# CocoaPods (if used in iOS project)
+Pods/
+*.xcworkspace
+
+# Carthage
+Carthage/Build/
+
+# fastlane
+fastlane/report.xml
+fastlane/Preview.html
+fastlane/screenshots/**/*.png
+fastlane/test_output
+
+# Xcode project settings
+*.xcodeproj/*
+!*.xcodeproj/project.pbxproj
+!*.xcodeproj/xcshareddata/
+!*.xcodeproj/project.xcworkspace/
+!*.xcworkspace/contents.xcworkspacedata
