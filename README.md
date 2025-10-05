@@ -55,7 +55,8 @@ python init_db.py
 ```
 
 **출력 예시**:
-```
+
+```text
 ==================================================
 Database Initialization Started
 ==================================================
@@ -77,7 +78,8 @@ python app.py
 ```
 
 **출력 예시**:
-```
+
+```text
 ======================================================================
 Blog API Server - REST + GraphQL
 ======================================================================
@@ -109,21 +111,25 @@ Press CTRL+C to stop the server
 ### REST API 예제
 
 **게시글 목록 조회** (페이지네이션, 정렬, 검색):
+
 ```bash
 curl "http://localhost:5001/posts?page=1&limit=10&sort=created_at&order=desc&search=Python"
 ```
 
 **사용자 정보 조회**:
+
 ```bash
 curl "http://localhost:5001/users/1"
 ```
 
 **사용자 게시글 조회**:
+
 ```bash
 curl "http://localhost:5001/users/1/posts?limit=3"
 ```
 
 **모든 사용자 목록**:
+
 ```bash
 curl "http://localhost:5001/users"
 ```
@@ -131,10 +137,12 @@ curl "http://localhost:5001/users"
 ### GraphQL API 예제
 
 **브라우저에서 테스트**:
+
 1. 브라우저에서 `http://localhost:5001/graphql` 접속
 2. GraphQL Playground에서 쿼리 실행
 
 **예제 쿼리 1** - 게시글 목록:
+
 ```graphql
 {
   posts(page: 1, limit: 5, sortBy: "created_at", order: "desc") {
@@ -157,6 +165,7 @@ curl "http://localhost:5001/users"
 ```
 
 **예제 쿼리 2** - 사용자 + 게시글 (N+1 문제 해결):
+
 ```graphql
 {
   user(id: 1) {
@@ -171,6 +180,7 @@ curl "http://localhost:5001/users"
 ```
 
 **예제 쿼리 3** - 모든 사용자 + 게시글 (1회 요청):
+
 ```graphql
 {
   users {
@@ -185,6 +195,7 @@ curl "http://localhost:5001/users"
 ```
 
 **curl로 GraphQL 요청**:
+
 ```bash
 curl -X POST http://localhost:5001/graphql \
   -H "Content-Type: application/json" \
@@ -197,50 +208,333 @@ curl -X POST http://localhost:5001/graphql \
 
 ## 🍎 iOS 앱 연동
 
-### Swift에서 REST API 호출
+### 프로젝트 구조
 
-```swift
-let url = URL(string: "http://localhost:5001/posts?page=1&limit=10")!
-let task = URLSession.shared.dataTask(with: url) { data, response, error in
-    // Handle response
-}
-task.resume()
+iOS 앱은 다음과 같은 구조로 되어 있습니다:
+
+```text
+BlogPostSystem-Demo/
+├── Models/
+│   └── Responses.swift          # 데이터 모델 정의
+├── Extensions/
+│   └── Alamofire+Extensions.swift  # URLSession 확장
+├── BlogService.swift            # API 서비스 레이어
+├── ViewModels/
+│   └── ContentViewModel.swift   # 비즈니스 로직
+└── ContentView.swift            # UI
 ```
 
-### Swift에서 GraphQL 호출
+---
+
+### 1. URLSession 확장 (Alamofire+Extensions.swift)
+
+REST API와 GraphQL 요청을 위한 재사용 가능한 메서드:
 
 ```swift
-let url = URL(string: "http://localhost:5001/graphql")!
-var request = URLRequest(url: url)
-request.httpMethod = "POST"
-request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+extension URLSession {
 
-let query = """
+    // REST API 요청
+    func requestRestAPI<T: Decodable & Sendable>(url: String) async throws -> T {
+        let urlObj = URL(string: url)!
+        let (data, response) = try await self.data(from: urlObj)
+
+        guard let httpResponse = response as? HTTPURLResponse,
+              (200...299).contains(httpResponse.statusCode) else {
+            throw URLError(.badServerResponse)
+        }
+
+        return try JSONDecoder().decode(T.self, from: data)
+    }
+
+    // GraphQL 요청
+    func requestGraphQL<T: Decodable & Sendable>(
+        query: String,
+        variables: [String: Any]? = nil
+    ) async throws -> T {
+        let parameters: [String: Any] = [
+            "query": query,
+            "variables": variables ?? [:]
+        ]
+
+        let url = URL(string: "http://localhost:5001/graphql")!
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.httpBody = try JSONSerialization.data(withJSONObject: parameters)
+
+        let (data, response) = try await self.data(for: request)
+
+        guard let httpResponse = response as? HTTPURLResponse,
+              (200...299).contains(httpResponse.statusCode) else {
+            throw URLError(.badServerResponse)
+        }
+
+        let decoded = try JSONDecoder().decode(GraphQLResponse<T>.self, from: data)
+
+        if let data = decoded.data {
+            return data
+        } else if let errors = decoded.errors {
+            throw GraphQLError(errors: errors)
+        } else {
+            throw NSError(domain: "GraphQL", code: -1)
+        }
+    }
+}
+```
+
+---
+
+### 2. 데이터 모델 (Responses.swift)
+
+```swift
+// GraphQL 공통 응답 래퍼
+struct GraphQLResponse<T: Decodable & Sendable>: Decodable, Sendable {
+    let data: T?
+    let errors: [GraphQLErrorDetail]?
+}
+
+// 사용자 모델
+struct User: Decodable, Sendable {
+    let id: Int
+    let name: String
+    let email: String
+}
+
+// 게시글 모델
+struct Post: Decodable, Sendable {
+    let id: Int
+    let title: String
+    let content: String
+    let author: User
+}
+
+// REST API 응답
+struct UsersResponse: Decodable, Sendable {
+    let data: [User]
+    let total: Int
+}
+
+struct PostsResponse: Decodable, Sendable {
+    let user: User
+    let posts: [Post]
+    let total: Int
+}
+
+// GraphQL 응답
+struct GraphQLPostsResponse: Decodable, Sendable {
+    let users: [GraphQLUser]
+
+    // GraphQL 응답을 Post 배열로 변환
+    var conversion: [Post] {
+        users.flatMap { user in
+            user.posts.map { post in
+                Post(
+                    author: User(email: user.email, id: -1, name: user.name),
+                    content: post.content,
+                    id: post.id,
+                    title: post.title
+                )
+            }
+        }
+    }
+
+    struct GraphQLUser: Decodable, Sendable {
+        let name: String
+        let email: String
+        let posts: [GraphQLPost]
+    }
+
+    struct GraphQLPost: Decodable, Sendable {
+        let id: Int
+        let title: String
+        let content: String
+    }
+}
+```
+
+---
+
+### 3. API 서비스 레이어 (BlogService.swift)
+
+```swift
+struct BlogService {
+
+    // REST API: 모든 사용자 조회
+    func requestAllUsers() async throws -> UsersResponse {
+        try await URLSession.shared.requestRestAPI(
+            url: "http://localhost:5001/users"
+        )
+    }
+
+    // REST API: 특정 사용자의 게시글 조회
+    func requestPosts(by user: User) async throws -> PostsResponse {
+        try await URLSession.shared.requestRestAPI(
+            url: "http://localhost:5001/users/\(user.id)/posts?limit=3"
+        )
+    }
+
+    // GraphQL: 모든 사용자 + 게시글 한 번에 조회
+    func requestUsersAndPosts() async throws -> GraphQLPostsResponse {
+        try await URLSession.shared.requestGraphQL(
+            query: """
+            query {
+              users {
+                name
+                email
+                posts(limit: 3) {
+                  id
+                  title
+                  content
+                }
+              }
+            }
+            """
+        )
+    }
+}
+```
+
+---
+
+### 4. ViewModel (ContentViewModel.swift)
+
+```swift
+final class ContentViewModel: ObservableObject {
+
+    @Published private(set) var posts: [Post] = []
+    private let service = BlogService()
+
+    // REST API: N+1 문제 발생 (여러 번 요청)
+    func requestRestAPI() {
+        Task { @MainActor in
+            do {
+                // 1. 모든 사용자 조회
+                let users = try await service.requestAllUsers().data
+
+                // 2. 각 사용자의 게시글 개별 조회 (N번 반복)
+                var posts: [Post] = []
+                for user in users {
+                    let response = try await service.requestPosts(by: user)
+                    posts.append(contentsOf: response.posts)
+                }
+                self.posts = posts
+            } catch {
+                print(error)
+            }
+        }
+    }
+
+    // GraphQL: 단일 요청으로 모든 데이터 조회
+    func requestGraphQL() {
+        Task { @MainActor in
+            do {
+                let response = try await service.requestUsersAndPosts()
+                self.posts = response.conversion
+            } catch {
+                print(error)
+            }
+        }
+    }
+}
+```
+
+---
+
+### 5. UI (ContentView.swift)
+
+```swift
+struct ContentView: View {
+
+    @ObservedObject var viewModel = ContentViewModel()
+
+    var body: some View {
+        VStack {
+            // 버튼
+            HStack(spacing: 16) {
+                Button("REST API") {
+                    viewModel.requestRestAPI()  // N+1 문제 발생
+                }
+                Button("GraphQL") {
+                    viewModel.requestGraphQL()  // 단일 요청
+                }
+                Button("Reset") {
+                    viewModel.reset()
+                }
+            }
+
+            Divider()
+
+            // 게시글 목록
+            List(viewModel.posts, id: \.id) { post in
+                VStack(alignment: .leading) {
+                    Text(post.title)
+                        .font(.headline)
+                    Text("by \(post.author.name)")
+                        .font(.subheadline)
+                    Text(post.content)
+                        .font(.body)
+                        .lineLimit(2)
+                }
+            }
+        }
+        .padding()
+    }
+}
+```
+
+---
+
+### 🎯 핵심 차이점
+
+#### REST API (N+1 문제)
+
+```swift
+// 1번: 사용자 조회
+GET /users
+
+// N번: 각 사용자의 게시글 조회
+GET /users/1/posts?limit=3
+GET /users/2/posts?limit=3
+GET /users/3/posts?limit=3
+
+// 총 4번의 네트워크 요청 필요
+```
+
+#### GraphQL (단일 요청)
+
+```swift
+// 1번: 사용자 + 게시글 한 번에 조회
+POST /graphql
 {
-  posts(limit: 10) {
-    data {
+  users {
+    name
+    email
+    posts(limit: 3) {
       id
       title
-      author { name }
+      content
     }
   }
 }
-"""
 
-let body = ["query": query]
-request.httpBody = try? JSONSerialization.data(withJSONObject: body)
-
-let task = URLSession.shared.dataTask(with: request) { data, response, error in
-    // Handle response
-}
-task.resume()
+// 총 1번의 네트워크 요청으로 완료
 ```
+
+---
+
+### 📊 성능 비교 결과
+
+| 항목 | REST API | GraphQL | 개선율 |
+|------|----------|---------|--------|
+| **네트워크 요청 수** | 4회 | 1회 | **75% 감소** |
+| **코드 복잡도** | 높음 (for 루프) | 낮음 (단일 호출) | - |
+| **데이터 전송량** | ~4,800 bytes | ~1,200 bytes | **75% 감소** |
 
 ---
 
 ## 🗂️ 프로젝트 구조
 
-```
+```text
 .
 ├── app.py              # Flask 서버 진입점 (REST + GraphQL)
 ├── database.py         # SQLite 데이터베이스 헬퍼 함수
@@ -292,6 +586,7 @@ pip install --force-reinstall flask strawberry-graphql flask-cors
 ### 시나리오: 모든 사용자 + 각 사용자의 게시글 3개 조회
 
 #### REST API (N+1 문제):
+
 ```bash
 # 1. 모든 사용자 조회
 GET /users
@@ -305,6 +600,7 @@ GET /users/3/posts?limit=3
 ```
 
 #### GraphQL (단일 요청):
+
 ```graphql
 {
   users {
@@ -319,6 +615,7 @@ GET /users/3/posts?limit=3
 ```
 
 #### 성능 개선 결과:
+
 - 요청 횟수: **75% 감소** (4회 → 1회)
 - 데이터 전송량: **75% 감소** (4,848 → 1,220 bytes)
 - 네트워크 왕복: **75% 감소**
@@ -426,7 +723,7 @@ query {
 
 **REST API**:
 
-```
+```text
 1. GET /users (모든 사용자)
 2. GET /users/1/posts?limit=3
 3. GET /users/2/posts?limit=3
