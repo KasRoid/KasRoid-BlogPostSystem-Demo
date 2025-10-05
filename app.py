@@ -16,6 +16,7 @@ Available endpoints:
 
 from flask import Flask, jsonify
 from flask_cors import CORS
+from flask_swagger_ui import get_swaggerui_blueprint
 from rest_api import rest_api_bp
 from strawberry.flask.views import GraphQLView
 from graphql_api import schema
@@ -64,6 +65,19 @@ def create_app():
         )
     )
 
+    # Register Swagger UI
+    # Swagger documentation will be available at /api/docs
+    SWAGGER_URL = '/api/docs'
+    API_URL = '/static/swagger.json'
+    swaggerui_blueprint = get_swaggerui_blueprint(
+        SWAGGER_URL,
+        API_URL,
+        config={
+            'app_name': "Blog REST API"
+        }
+    )
+    app.register_blueprint(swaggerui_blueprint, url_prefix=SWAGGER_URL)
+
     # Root endpoint
     @app.route('/')
     def index():
@@ -80,6 +94,7 @@ def create_app():
                 'graphql': '/graphql'
             },
             'documentation': {
+                'swagger': 'http://localhost:5001/api/docs',
                 'rest_api': {
                     'posts': 'GET /posts?page=1&limit=10&sort=created_at&order=desc&search=keyword',
                     'single_post': 'GET /posts/<id>',
@@ -138,6 +153,8 @@ if __name__ == '__main__':
     print("\nGraphQL Endpoint:")
     print("  - GraphQL:     http://localhost:5001/graphql")
     print("  - Playground:  Open http://localhost:5001/graphql in browser")
+    print("\nAPI Documentation:")
+    print("  - Swagger UI:  http://localhost:5001/api/docs")
     print("\nPress CTRL+C to stop the server")
     print("=" * 70)
     print()
