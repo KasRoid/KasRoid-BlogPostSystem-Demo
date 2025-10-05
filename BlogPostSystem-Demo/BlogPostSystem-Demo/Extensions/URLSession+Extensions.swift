@@ -1,5 +1,5 @@
 //
-//  Alamofire+Extensions.swift
+//  URLSession+Extensions.swift
 //  BlogPostSystem-Demo
 //
 //  Created by Doyoung Song on 10/3/25.

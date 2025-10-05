@@ -6,10 +6,6 @@
 	objectVersion = 77;
 	objects = {
 
-/* Begin PBXBuildFile section */
-		128F3D3D2E8FFA5C00000CC1 /* Alamofire in Frameworks */ = {isa = PBXBuildFile; productRef = 128F3D3C2E8FFA5C00000CC1 /* Alamofire */; };
-/* End PBXBuildFile section */
-
 /* Begin PBXContainerItemProxy section */
 		128F3D1E2E8FF86C00000CC1 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
@@ -56,7 +52,6 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				128F3D3D2E8FFA5C00000CC1 /* Alamofire in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -125,7 +120,6 @@
 			);
 			name = "BlogPostSystem-Demo";
 			packageProductDependencies = (
-				128F3D3C2E8FFA5C00000CC1 /* Alamofire */,
 			);
 			productName = "BlogPostSystem-Demo";
 			productReference = 128F3D102E8FF86A00000CC1 /* BlogPostSystem-Demo.app */;
@@ -210,7 +204,6 @@
 			mainGroup = 128F3D072E8FF86A00000CC1;
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
-				128F3D3A2E8FFA5000000CC1 /* XCRemoteSwiftPackageReference "Alamofire" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 128F3D112E8FF86A00000CC1 /* Products */;
@@ -595,25 +588,6 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
-
-/* Begin XCRemoteSwiftPackageReference section */
-		128F3D3A2E8FFA5000000CC1 /* XCRemoteSwiftPackageReference "Alamofire" */ = {
-			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/Alamofire/Alamofire";
-			requirement = {
-				kind = upToNextMajorVersion;
-				minimumVersion = 5.10.2;
-			};
-		};
-/* End XCRemoteSwiftPackageReference section */
-
-/* Begin XCSwiftPackageProductDependency section */
-		128F3D3C2E8FFA5C00000CC1 /* Alamofire */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = 128F3D3A2E8FFA5000000CC1 /* XCRemoteSwiftPackageReference "Alamofire" */;
-			productName = Alamofire;
-		};
-/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = 128F3D082E8FF86A00000CC1 /* Project object */;
 }
